@@ -3,19 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Summary of MoM by Dimas</title>
+    <title>Meeting Recorder + Summarizer</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+      body {
+        background-color: #f4f6f9;
+      }
       #transcript,
       #summary {
         margin-top: 20px;
-        padding: 15px;
+        padding: 5px;
         border: 1px solid #ccc;
-        min-height: 100px;
-        background-color: #f9f9f9;
+        min-height: 120px;
+        background-color: #fff;
         white-space: pre-wrap;
       }
       #transcript h3,
@@ -23,24 +26,42 @@
         color: #333;
         font-size: 1.2em;
       }
+      .blinking {
+        animation: blinkingText 1.2s infinite;
+        color: red;
+        font-weight: bold;
+      }
+      @keyframes blinkingText {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="container mt-4">
-      <h2 class="mb-4">Meeting Recorder + Deepseek Summarizer</h2>
+      <h2 class="mb-4">Summary from Audio</h2>
 
       <div class="mb-3">
         <button class="btn btn-primary" id="startBtn">Mulai Rekam</button>
         <button class="btn btn-danger" id="stopBtn" disabled>Stop Rekam</button>
         <button class="btn btn-success" id="summarizeBtn" disabled>
-          Rangkum Meeting
+          Memulai Merangkum
         </button>
       </div>
 
-      <h4>Transkrip Meeting:</h4>
+      <div id="status" class="mb-2"></div>
+
+      <h4>Transkrip:</h4>
       <div id="transcript">(Belum ada transkrip)</div>
 
-      <h4 class="mt-4">Ringkasan Meeting:</h4>
+      <h4 class="mt-4">Ringkasan Berdasarkan Audio:</h4>
       <div id="summary">(Belum ada ringkasan)</div>
     </div>
 
@@ -50,6 +71,7 @@
       const summarizeBtn = document.getElementById("summarizeBtn");
       const transcriptDiv = document.getElementById("transcript");
       const summaryDiv = document.getElementById("summary");
+      const statusDiv = document.getElementById("status");
 
       let recognition;
       let finalTranscript = "";
@@ -74,6 +96,12 @@
 
         recognition.onerror = (event) => {
           console.error("Speech recognition error", event);
+          statusDiv.innerHTML = `<span class="text-danger">Error dalam perekaman suara: ${event.error}</span>`;
+        };
+
+        recognition.onend = () => {
+          finalTranscript = transcriptDiv.textContent.trim();
+          statusDiv.innerHTML = `<span class="text-muted">Perekaman berhenti.</span>`;
         };
       } else {
         alert("Browser Anda tidak mendukung Speech Recognition.");
@@ -82,11 +110,13 @@
       startBtn.addEventListener("click", () => {
         if (recognition) {
           finalTranscript = "";
-          transcriptDiv.textContent = "(Merekam...)";
+          transcriptDiv.textContent = "";
+          summaryDiv.innerHTML = "(Belum ada ringkasan)";
           recognition.start();
           startBtn.disabled = true;
           stopBtn.disabled = false;
           summarizeBtn.disabled = true;
+          statusDiv.innerHTML = `<span class="blinking">Merekam...</span>`;
         }
       });
 
@@ -115,7 +145,7 @@
               method: "POST",
               headers: {
                 Authorization:
-                  "Bearer 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",
+                  "Bearer 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",
                 Referer: "https://www.sitename.com",
                 "X-Title": "SiteName",
                 "Content-Type": "application/json",
