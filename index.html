@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meeting Recorder + Summarizer</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+      #transcript,
+      #summary {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ccc;
+        min-height: 100px;
+        background-color: #f9f9f9;
+        white-space: pre-wrap;
+      }
+      #transcript h3,
+      #summary h3 {
+        color: #333;
+        font-size: 1.2em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-4">
+      <h2 class="mb-4">Meeting Recorder + Deepseek Summarizer</h2>
+
+      <div class="mb-3">
+        <button class="btn btn-primary" id="startBtn">Mulai Rekam</button>
+        <button class="btn btn-danger" id="stopBtn" disabled>Stop Rekam</button>
+        <button class="btn btn-success" id="summarizeBtn" disabled>
+          Rangkum Meeting
+        </button>
+      </div>
+
+      <h4>Transkrip Meeting:</h4>
+      <div id="transcript">(Belum ada transkrip)</div>
+
+      <h4 class="mt-4">Ringkasan Meeting:</h4>
+      <div id="summary">(Belum ada ringkasan)</div>
+    </div>
+
+    <script>
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const summarizeBtn = document.getElementById("summarizeBtn");
+      const transcriptDiv = document.getElementById("transcript");
+      const summaryDiv = document.getElementById("summary");
+
+      let recognition;
+      let finalTranscript = "";
+
+      if ("webkitSpeechRecognition" in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "id-ID";
+
+        recognition.onresult = (event) => {
+          let interimTranscript = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript + "\n";
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+          transcriptDiv.textContent = finalTranscript + interimTranscript;
+        };
+
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error", event);
+        };
+      } else {
+        alert("Browser Anda tidak mendukung Speech Recognition.");
+      }
+
+      startBtn.addEventListener("click", () => {
+        if (recognition) {
+          finalTranscript = "";
+          transcriptDiv.textContent = "(Merekam...)";
+          recognition.start();
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+          summarizeBtn.disabled = true;
+        }
+      });
+
+      stopBtn.addEventListener("click", () => {
+        if (recognition) {
+          recognition.stop();
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+          summarizeBtn.disabled = false;
+        }
+      });
+
+      summarizeBtn.addEventListener("click", async () => {
+        const textToSummarize = finalTranscript.trim();
+        if (!textToSummarize) {
+          alert("Tidak ada teks untuk dirangkum.");
+          return;
+        }
+
+        summaryDiv.innerHTML = "Sedang membuat ringkasan...";
+
+        try {
+          const response = await fetch(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+              method: "POST",
+              headers: {
+                Authorization:
+                  "Bearer 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",
+                Referer: "https://www.sitename.com",
+                "X-Title": "SiteName",
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "deepseek/deepseek-r1:free",
+                messages: [
+                  {
+                    role: "system",
+                    content:
+                      "Anda adalah asisten yang membantu meringkas transkrip meeting menjadi poin-poin penting.",
+                  },
+                  {
+                    role: "user",
+                    content: `Ringkaskan teks berikut menjadi poin-poin penting:\n\n${textToSummarize}`,
+                  },
+                ],
+              }),
+            }
+          );
+
+          const data = await response.json();
+          console.log(data);
+          const markdownText =
+            data.choices?.[0]?.message?.content || "Tidak ada ringkasan.";
+          summaryDiv.innerHTML = marked.parse(markdownText);
+        } catch (error) {
+          summaryDiv.innerHTML = "Error: " + error.message;
+        }
+      });
+    </script>
+  </body>
+</html>
