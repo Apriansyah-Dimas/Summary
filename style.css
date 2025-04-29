@@ -1,0 +1,33 @@
+body {
+  background-color: #f4f6f9;
+}
+#transcript,
+#summary {
+  margin-top: 5px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  min-height: 120px;
+  background-color: #fff;
+  white-space: pre-wrap;
+}
+#transcript h3,
+#summary h3 {
+  color: #333;
+  font-size: 1.2em;
+}
+.blinking {
+  animation: blinkingText 1.2s infinite;
+  color: red;
+  font-weight: bold;
+}
+@keyframes blinkingText {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
